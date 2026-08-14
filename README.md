@@ -52,10 +52,12 @@ To connect a wallet to Arc Testnet:
 | Block explorer  | https://testnet.arcscan.app     |
 
 > [!IMPORTANT]
-> Arc Testnet's chain ID is **`5042002`** (`0x4cef52`). Some third-party chain
-> registries and older community guides incorrectly list `1516` — that value is
-> **wrong** and will cause wallet connection failures. You can verify the chain
-> ID returned by a node directly:
+> Arc Testnet's chain ID is **`5042002`** (`0x4cef52`). The canonical registry
+> (chainid.network) already lists this correctly. Wrong values circulate in
+> community guides that confuse this chain with similarly named ones: `1516`
+> belongs to Story Odyssey Testnet, and `1243`/`1244` belong to a deprecated,
+> unrelated project also called ARC. Any of these will cause wallet connection
+> failures. You can verify the chain ID returned by a node directly:
 >
 > ```bash
 > curl -X POST https://rpc.testnet.arc.network \
