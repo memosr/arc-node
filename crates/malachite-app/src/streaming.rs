@@ -287,6 +287,13 @@ impl StreamState {
             // saturating add so the worst case is `usize::MAX` (an unreachable
             // completion target the stream is later evicted for), never a panic
             // or a spurious wrap-to-zero.
+            //
+            // The retained truncation allow assumes a 64-bit target, where
+            // `usize == u64` and the cast is lossless. On a 32-bit target the
+            // cast would truncate before the saturating add, letting a peer
+            // pick a small-but-wrong completion target; the stream would still
+            // be bounded and evicted, but node deployments are 64-bit and this
+            // code relies on that.
             #[allow(clippy::cast_possible_truncation)]
             {
                 self.expected_messages = (msg.sequence as usize).saturating_add(1);
@@ -754,6 +761,29 @@ mod tests {
             "Stream should not be complete after one message"
         );
         assert_eq!(map.streams.len(), 1, "Map should contain one active stream");
+    }
+
+    #[test]
+    fn test_fin_with_max_sequence_does_not_overflow() {
+        let peer_1 = PeerId::random();
+        let stream_1 = make_stream_id(101);
+
+        let mut map = PartStreamsMap::new(Height::new(1), NUM_VALIDATORS);
+        let init_msg = make_message(&stream_1, 0, make_init_part());
+        // A malicious peer can put any u64 in `sequence`. Before the saturating
+        // add, `sequence as usize + 1` panicked here under debug assertions.
+        let fin_msg = make_fin_message(&stream_1, u64::MAX);
+
+        assert!(map.must_insert(peer_1, init_msg).is_none());
+        assert!(
+            map.must_insert(peer_1, fin_msg).is_none(),
+            "Stream must not complete on a bogus Fin sequence"
+        );
+        assert_eq!(
+            map.streams.len(),
+            1,
+            "Stream should stay pending until evicted, not complete or disappear"
+        );
     }
 
     #[test]
